@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <title>CYBERDOCTOR</title>
+  <meta name="theme-color" content="#0a0a1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CYBERDOCTOR">
+  <style>
+  *{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0a0a1a,#0d1b2a);color:#e3f2fd;font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;-webkit-tap-highlight-color:transparent}
+#pbar{position:fixed;top:0;left:0;right:0;display:flex;justify-content:center;gap:6px;padding:8px 12px;background:rgba(10,10,26,.95);backdrop-filter:blur(12px);z-index:100;border-bottom:1px solid #1a1a3a}
+.pb{padding:5px 14px;border-radius:20px;border:1px solid #2a2a4a;background:transparent;color:#556;cursor:pointer;font-size:11px;letter-spacing:.05em;transition:all .2s;font-weight:500}
+.pb.act{background:#1a1a3a;border-color:#4fc3f7;color:#4fc3f7}
+.logo{font-size:2.2rem;font-weight:700;letter-spacing:.18em;color:#4fc3f7;margin-bottom:6px;margin-top:80px}
+.tag{font-size:.8rem;color:#455a64;margin-bottom:20px;letter-spacing:.06em;text-transform:uppercase}
+.wrap{position:relative;margin-bottom:20px}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(79,195,247,.15);animation:rp 3s ease-in-out infinite}
+.r1{inset:-12px}
+  .r2{inset:-24px;border-color:rgba(79,195,247,.07);animation-delay:.5s}
+@keyframes rp{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+.orb{width:140px;height:140px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#162540,#0a0f1a);border:2px solid #1e3a5f;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s;position:relative;box-shadow:0 0 25px rgba(79,195,247,.08),inset 0 0 25px rgba(0,0,0,.5);user-select:none;-webkit-user-select:none}
+.orb.on{border-color:#4fc3f7;box-shadow:0 0 50px rgba(79,195,247,.35);animation:op 2.8s ease-in-out infinite}
+.orb.sp{border-color:#81c784;box-shadow:0 0 50px rgba(129,199,132,.35);animation:op .9s ease-in-out infinite}
+.orb.stopping{border-color:#ef9a9a;box-shadow:0 0 30px rgba(239,154,154,.25);animation:none}
+  .orb.er{border-color:#ef9a9a}
+  @keyframes op{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.icon{font-size:2.8rem}
+.status{font-size:1rem;color:#78909c;margin-bottom:8px;min-height:26px;font-weight:500}
+.status.on{color:#4fc3f7}
+.status.sp{color:#81c784}
+.status.er{color:#ef9a9a}
+.hint{font-size:.75rem;color:#2e4057;min-height:18px;margin-bottom:8px}
+.brand{margin-top:8px;font-size:.6rem;color:#1c2b38;letter-spacing:.12em;text-transform:uppercase}
+#dbg{font-size:.65rem;color:#ef9a9a;background:rgba(239,154,154,.08);border:1px solid rgba(239,154,154,.2);border-radius:8px;padding:8px 12px;margin-top:10px;max-width:360px;word-break:break-all;text-align:left}
+@media(max-width:500px){.logo{font-size:2rem;margin-top:60px}.orb{width:120px;height:120px}.pb{font-size:10px;padding:4px 10px}}
+</style>
+</head>
+  <body>
+  <div id="pbar">
+  <button id="bp-el" class="pb" onclick="setP('elevenlabs')">ElevenLabs</button>
+<button id="bp-hume" class="pb" onclick="setP('hume')">Hume AI</button>
+  <button id="bp-re" class="pb" onclick="setP('retell')">Retell AI</button>
+  <button id="bp-en" class="pb" onclick="setL('en')">EN</button>
+  <button id="bp-pl" class="pb" onclick="setL('pl')">PL</button>
+<button id="bp-sv" class="pb" onclick="setL('sv')">SV</button>
+</div>
+  <div class="logo">CYBERDOCTOR</div>
+<div class="tag">v27</div>
+  <div class="wrap">
+<div class="ring r1"></div>
+<div class="ring r2"></div>
+  <div id="orb" class="orb" onclick="go()"><div class="icon" id="ic">&#x1F33F;</div></div>
+</div>
+<div id="status" class="status"></div>
+<div id="hint" class="hint"></div>
+<div id="dbg">Loading SDK...</div>
+<div class="brand">by CLI</div>
+
+  <script>
+  var pCtx=null,on=false,lang='pl',prov='elevenlabs',stopping=false,stopCooldown=false;
+var elConv=null;
+window.EL=null;
+
+var AGENTS={
+  elevenlabs:{
+    en:'agent_4801kksye0h7fwer3stvz64jg64c',
+          pl:'agent_3401kkynw95qfvh9vjt0k1nk71xm',
+          sv:'agent_0101kkyywztkehtbntx2a43b7bna'
+      }
+       };
+
+var I18N={
+  en:{idle:'Tap to talk to your doctor',idleHint:'AI health assistant ready',loading:'Loading...',listening:'Listening...',listeningHint:'Speak freely about your health',speaking:'Speaking...',er:'Error - tap to retry'},
+    pl:{idle:'Dotknij, by porozmawiać z lekarzem',idleHint:'Asystent zdrowia AI gotowy',loading:'Ładowanie...',listening:'Słuchamy...',listeningHint:'Mów swobodnie o swoim zdrowiu',speaking:'Mówimy...',er:'Błąd - dotknij, spróbować ponownie'},
+        sv:{idle:'Tryck för att prata med din läkare',idleHint:'AI hälsoassistent redo',loading:'Laddar...',listening:'Lyssnar...',listeningHint:'Tala fritt om din hälsa',speaking:'Talar...',er:'Fel - tryck för att försöka igen'}
+       };
+
+function dbgLog(m){
+    var e=document.getElementById('dbg');
+  if(e){e.innerHTML=e.innerHTML+(e.innerHTML?'<br>':'')+m;}
+    }
+    function t(k){return(I18N[lang]||I18N.en)[k]||k;}
+function ss(s,cls,h){
+    var st=document.getElementById('status'),orb=document.getElementById('orb'),hi=document.getElementById('hint');
+  st.className='status'+(cls?' '+cls:'');st.innerHTML=s;
+      orb.className='orb'+(cls?' '+cls:'');
+      if(hi)hi.innerHTML=h||'';
+}
+function updateBar(){
+    ['el','hume','re'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
+  ['en','pl','sv'].forEach(function(x){document.getElementById('bp-'+x).classList.remove('act');});
+  var pm={'elevenlabs':'el','hume':'hume','retell':'re'};
+  if(pm[prov])document.getElementById('bp-'+pm[prov]).classList.add('act');
+  document.getElementById('bp-'+lang).classList.add('act');
+}
+function getACtx(){
+    if(!pCtx){pCtx=new(window.AudioContext||window.webkitAudioContext)();}
+  if(pCtx.state==='suspended')pCtx.resume();
+  return pCtx;
+}
+function setP(p){if(on)stop();prov=p;updateBar();}
+function setL(l){if(on)stop();lang=l;updateBar();ss(t('idle'),'',t('idleHint'));}
+
+  function go(){
+    if(stopping||stopCooldown){dbgLog('BLOCKED');return;}
+  if(on){stop();}else{start();}
+}
+function start(){
+    if(stopping||stopCooldown)return;
+  getACtx();
+  on=true;
+  ss(t('listening'),'on',t('listeningHint'));
+  document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
+  if(prov==='hume')startHume();
+  else if(prov==='retell')startRetell();
+  else startEL();
+}
+function stop(){
+    if(stopping)return;
+  stopping=true;on=false;
+  document.getElementById('ic').textContent='\uD83C\uDF33';
+  ss(t('idle'),'stopping',t('idleHint'));
+  stopEL();
+  setTimeout(function(){
+    stopping=false;stopCooldown=true;
+    ss(t('idle'),'',t('idleHint'));
+          setTimeout(function(){stopCooldown=false;},1500);
+  },800);
+}
+
+function startEL(){
+    if(window.EL===null){
+    dbgLog('EL SDK not ready');
+    on=false;
+    ss(t('er'),'er');
+    return;
+    }
+  var aid=AGENTS.elevenlabs[lang]||AGENTS.elevenlabs.en;
+  dbgLog('startEL lang='+lang+' agent='+aid.slice(-8));
+  window.EL.startSession({
+        agentId: aid,
+        onConnect: function(){
+      dbgLog('CONNECTED');
+      if(!on||stopping)return;
+      ss(t('listening'),'on',t('listeningHint'));
+      document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';
+  },
+    onDisconnect: function(){
+      dbgLog('DISCONNECTED');
+      elConv=null;
+      if(!stopping){on=false;document.getElementById('ic').textContent='\uD83C\uDF33';ss(t('idle'),'',t('idleHint'));}
+        },
+            onModeChange: function(m){
+              dbgLog('mode:'+m.mode);
+      if(!on||stopping)return;
+      if(m.mode==='speaking'){ss(t('speaking'),'sp');document.getElementById('ic').textContent='\uD83C\uDF99\uFE0F';}
+      else{ss(t('listening'),'on',t('listeningHint'));}
+      },
+    onError: function(e){
+      var msg=e?JSON.stringify(e):'?';
+      dbgLog('ERR:'+msg.slice(0,120));
+      if(msg.indexOf('error_type')>=0){return;}
+      ss(t('er'),'er');
+    }
+                   }).then(function(c){
+            elConv=c;
+    dbgLog('session started OK');
+      }).catch(function(err){
+    dbgLog('session FAIL:'+(err?err.toString().slice(0,80):'?'));
+            on=false;ss(t('er'),'er');
+    });
+}
+
+function stopEL(){
+    var c=elConv;elConv=null;
+  if(c){
+    try{c.endSession();}catch(e){}
+    setTimeout(function(){try{if(c._ws)c._ws.close();}catch(e){}try{if(c._pc)c._pc.close();}catch(e){}},200);
+  }
+}
+
+function startHume(){dbgLog('Hume: not configured');}
+function stopHume(){}
+function startRetell(){dbgLog('Retell: not configured');}
+function stopRetell(){}
+
+window.addEventListener('unhandledrejection',function(e){
+    try{var r=e.reason,m=r?(r.message||String(r)):'';if(m.indexOf('error_type')>=0){e.preventDefault();return;}}catch(x){}
+      },true);
+
+updateBar();
+ss(t('idle'),'',t('idleHint'));
+  </script>
+
+  <script type="module">
+  async function loadEL(){
+    var cdns=[
+    'https://cdn.jsdelivr.net/npm/@elevenlabs/client@latest/+esm',
+    'https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.15.1/+esm',
+    'https://cdn.jsdelivr.net/npm/@elevenlabs/client@0.14.0/+esm',
+    'https://esm.sh/@elevenlabs/client'
+  ];
+  for(var i=0;i<cdns.length;i++){
+    try{
+      window.dbgLog('CDN '+i+'...');
+      var mod=await import(cdns[i]);
+      var C=mod.Conversation
+        ||(mod.default&&mod.default.Conversation)
+        ||(mod.default&&typeof mod.default.startSession==='function'?mod.default:null);
+      if(C){
+        window.EL=C;
+        document.getElementById('dbg').innerHTML='SDK OK (cdn'+i+')';
+        window.ss(window.t('idle'),'',window.t('idleHint'));
+                  return;
+      } else {
+        window.dbgLog('CDN '+i+' no export');
+      }
+    }catch(e){
+      window.dbgLog('CDN '+i+' ERR:'+String(e).slice(0,60));
+    }
+  }
+  window.dbgLog('ALL CDNs FAILED');
+}
+loadEL();
+</script>
+  </body>
+  </html>
